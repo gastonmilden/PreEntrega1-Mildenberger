@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Container from "react-bootstrap/Container";
+import {
+  getFirestore,
+  getDocs,
+  collection,
+  doc,
+  query,
+  where,
+} from "firebase/firestore";
 
-import { products } from "../data/products";
 import { ItemList } from "./ItemList";
 
 export const ItemListContainer = () => {
@@ -12,22 +19,22 @@ export const ItemListContainer = () => {
   const { id } = useParams();
 
   useEffect(() => {
-    const promise = new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve(products);
-      }, 2000);
-    });
+    const db = getFirestore();
 
-    promise
-      .then((response) => {
-        if (id) {
-          const filteres = response.filter(item => item.category === id);
-          setItems(filteres);
-        } else {
-          setItems(response);
-        }
-      })
-      .finally(() => setLoading(false));
+    const refCollection = id
+      ? query(collection(db, "items"), where("categoryId", "==", id))
+      : collection(db, "items");
+
+    getDocs(refCollection).then((snapshot) => {
+      if (snapshot.size === 0) console.log("no results");
+      else {
+        setItems(
+          snapshot.docs.map((doc) => {
+            return { id: doc.id, ...doc.data() };
+          })
+        );
+      }
+    });
   }, [id]);
 
   return (
